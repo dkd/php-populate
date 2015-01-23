@@ -1,0 +1,16 @@
+{
+  "linters": {
+    "Merge Conflict detection": {
+      "type": "merge-conflict"
+    },
+    "PHP Codesniffer": {
+      "type": "phpcs",
+      "bin": "vendor/bin/phpcs",
+      "flags": ["--standard=PSR2"],
+      "include": "(\\.php$)"
+    },
+    "English spelling": {
+      "type": "spelling"
+    }
+  }
+}
