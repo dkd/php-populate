@@ -1,0 +1,24 @@
+{
+    "name": "dkd/php-populate",
+    "description": "Trait for PHP classes, allowing properties to be populated from sources like JSON, via getters but using a single method",
+    "license": "MIT",
+    "version": "1.3.0",
+    "keywords": ["php", "trait", "json"],
+    "authors": [
+        {
+            "name": "Claus Due",
+            "email": "claus@namelesscoder.net"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Dkd\\Populate\\Tests\\Fixtures\\": "tests/fixtures/Dkd/Populate/",
+            "Dkd\\Populate\\Tests\\Unit\\": "tests/unit/Dkd/Populate/",
+            "Dkd\\Populate\\": "src/Dkd/Populate/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "@stable",
+        "squizlabs/php_codesniffer": "@stable"
+    }
+}
