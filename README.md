@@ -144,9 +144,14 @@ Supported input types
 
 The `populate()` method supports the following input types:
 
-* Other `PopulateTrait`-implementing object instances
+* Other `PopulateTrait`-implementing object instances of any type
 * String-indexed arrays with property=>value syntax
-* Any Iterator+ArrayAccess combination
+* Any `Iterator`+`ArrayAccess` combination is fully supported
+* `ArrayAccess` without Iterator is partially supported
+
+Note that the final type, an object implementing `ArrayAccess` but
+*not* implementing `Iterator`, is only supported when using a manual
+list of property names along with the "only selected properties" flag.
 
 Supported getters and setters
 -----------------------------

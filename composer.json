@@ -12,9 +12,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Dkd\\Populate\\Tests\\Fixtures\\": "tests/fixtures/Dkd/Populate/",
-            "Dkd\\Populate\\Tests\\Unit\\": "tests/unit/Dkd/Populate/",
-            "Dkd\\Populate\\": "src/Dkd/Populate/"
+            "Dkd\\Populate\\": "src/"
         }
     },
     "require-dev": {
