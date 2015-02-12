@@ -9,6 +9,7 @@ single method.
 
 * Is simple and fast - no use of Reflection, code generation and such
 * Uses getters and setters - always respects your public API
+* Does not add overloaded methods - avoids magic behavior
 * Is bi-directional - populates *and* exports properties
 * Can perform mapping - input's property names can be different from target's
 * Can populate and export properties selectively with or without mapping
@@ -22,12 +23,13 @@ Implemented as follows:
 namespace MyNamespace;
 
 use Dkd\Populate\PopulateTrait;
+use Dkd\Populate\PopulateInterface;
 
 /**
  * My populatable class
  */
-class MyClassWhichUsesPopulateTrait {
-	
+class MyClassWhichUsesPopulateTrait implements PopulateInterface
+{
 	use PopulateTrait;
 	
 	/**
@@ -38,12 +40,12 @@ class MyClassWhichUsesPopulateTrait {
 	/**
 	 * @var boolean
 	 */
-	protected $before = TRUE;
+	protected $before = true;
 
 	/**
 	 * @var boolean
 	 */
-	protected $after = FALSE;
+	protected $after = false;
 
 	/**
 	 * @param string $name
@@ -86,12 +88,19 @@ class MyClassWhichUsesPopulateTrait {
 	public function isAfter() {
 		return $this->after;
 	}
-
 }
 
 ```
 
-Implemented in this class it allows the following to populate data:
+The `PopulateInterface` is optional - it is included to enable you to
+use type hinting in methods, and to be able to pass other instances as
+source data when populating. If you plan to pass your objects as data
+source to other objects, you **must** either implement the interface
+**or** manually call `$source->exportGettableProperties();` to extract
+the values before you pass them to `populate()`. The following examples
+all illustrate usages where `$source` implements the interface.
+
+Implemented in the class, the Trait allows the following to populate data:
 
 ```php
 $source = someFakeMethodWhichRetrievesAnObjectImplementingPopulate(); 
@@ -115,16 +124,16 @@ And the following to export data to a simple array:
 $source = someFakeMethodWhichRetrievesAnObjectImplementingPopulate();
 
 // export all properties:
-$array = $source->export();
+$array = $source->exportGettableProperties();
 
 // export all properties but export "before" value as "after" key in array:
-$array = $source->export(array('before' => 'after'));
+$array = $source->exportGettableProperties(array('before' => 'after'));
 
 // export only some properties and map their names to other names:
-$array = $source->export(array('before' => 'after'), TRUE);
+$array = $source->exportGettableProperties(array('before' => 'after'), TRUE);
 
 // export only some properties but keep their names:
-$array = $source->export(array('before'), TRUE);
+$array = $source->exportGettableProperties(array('before'), TRUE);
 ```
 
 Note that in both examples when no mapping of properties' names is
@@ -138,6 +147,75 @@ with the input as both keys and values.
 
 Because of this the two arrays `array('before' => 'before')` and
 `array('before')` have the same meaning when populating or exporting.
+
+Populating with objects: reference or clone?
+--------------------------------------------
+
+When you populate an object and the input data contains other object
+instances, your expectation may be that `clone` is used on each object
+in order to populate with a clone, not a reference.
+
+However, the default behavior of `Populate` is to *populate any object
+values with references*. If you wish to have objects cloned instead,
+switch to the alternative method:
+
+```php
+$copy->populateWithClones($source);
+```
+
+This causes **all** object-type values to be cloned before being set
+on `$copy`.
+
+If your requirement is that some properties be populated with clones
+and others with references, there are two ways to reach your goal:
+
+```php
+// Solution #1: populate everything with references, then overwrite
+// those properties that require clones by calling the alternative
+// cloning method with a list of property names and the "only map
+// specified properties" flag set to `true`:
+$copy->populate($source);
+$copy->populateWithClones($source, array('cloneProperty1', 'cloneProperty2'), true);
+
+// Solution #2: the reverse of the above; populate everything with
+// clones then overwrite those properties requiring references:
+$copy->populateWithClones($source);
+$copy->populate($source, array('referenceProperty1', 'referenceProperty2'), true);
+```
+
+Naturally, you would select the method that requires the least number
+of property names to be passed in the second populate operation.
+
+The other, more obvious way is outside the scope of `Populate` because
+it manually post-processes the values to use clones/references, but
+it works just the same:
+
+```
+// Manual way #1: populate with references then clone selected properties:
+$copy->populate($source);
+$copy->setCloneProperty1(clone $copy->getCloneProperty1());
+$copy->setCloneProperty2(clone $copy->getCloneProperty2());
+
+// Manual way #2: populate with clones then overwrite selected properties
+// with references to the original input value:
+$copy->populateWithClones($source);
+$copy->setReferenceProperty1($source['referenceProperty1']);
+$copy->setReferenceProperty2($source['referenceProperty2']);
+```
+
+You can use whichever method fits your application design best. `Populate`
+provides methods which are suitable for generic usage but does not prevent
+you from using the existing setters and getters in any way.
+
+**Common pitfall**
+
+When populating objects with other objects as source and these other
+objects contain nested objects, the cloning that is performed by
+`Populate` *does not happen recursively*. To gain control over the
+cloning behavior for each object you are advised to define
+`__clone` methods on each object you need to control.
+
+See the [official PHP documentation, cloning chapter](http://php.net/manual/en/language.oop5.cloning.php)
 
 Supported input types
 ---------------------
@@ -200,6 +278,36 @@ try {
 } catch (\Dkd\Populate\Exception $error) {
 	// general failure - do something about it.
 }
-
 ```
 
+Edge cases
+----------
+
+Being very compact and not using Reflection or any configuration of
+any kind, there are some edge cases that `Populate` cannot handle.
+
+The edge cases and their workarounds:
+
+* `Populate` does not set public properties on classes implementing
+  the Trait. To work around this, handle your public properties
+  manually. If your properties are already public then you do not need
+  the logic provided by `PopulateTrait` in the first place.
+* `Populate` does not support overloaded methods for getters and setters.
+  The only "workaround" is to implement proper getters and setters.
+* `Populate` is not recursive; `populate()` does not get called on
+  child property values. To work around this, convert any values
+  before passing them to `populate()`. You can create recursive
+  methods that consume `PopulateInterface` instances and manually
+  use `export()` and recurse those values before calling `populate()`.
+  This also means that any nested object instances will not be cloned
+  automatically when you call `populateWithClones`. To work around this
+  when using arrays as source, your custom recursive methods should take
+  care of the cloning. When using objects as source, you can implement
+  the `__clone` method to control the cloning beahavior for each object.
+* `Populate` can only use proper PHP type hints to determine an
+  expected input type. This means that your `@param` annotations are
+  **not** taken into consideration. Setters which perform additional
+  validation of input arguments may still throw errors. In other words,
+  `Populate()` does not attempt to catch errors from any method it calls.
+  To work around this, manually remove any invalid values from the input
+  data before you pass it to `populate()`.

@@ -13,18 +13,22 @@ namespace Dkd\Populate;
 /**
  * Populate Trait
  *
- * Implement in classes to expose two new methods:
+ * Implement in classes to expose three new methods:
  *
  * - populate(PopulateTrait $source, array $optionalPropertyNameMap, boolean $onlyMappedProperties)
- * - export(array $optionalPropertyNameMap, boolean $onlyMappedProperties)
+ * - populateWithClones(PopulateTrait $source, array $optionalPropertyNameMap, boolean $onlyMappedProperties)
+ * - exportGettableProperties(array $optionalPropertyNameMap, boolean $onlyMappedProperties)
  *
  * Which either set or get all properties as determined
  * by get_class_properties OR by $optionalPropertyNameMap
- * if the $onlyMappedProperties parameter is TRUE,
+ * if the $onlyMappedProperties parameter is <code>true</code>,
  * and setting/getting properties using the appropriate
- * setter/getter methods.
+ * setter/getter methods. The `populate()` method will
+ * populate properties containing object instances using
+ * references - the `populateWithClones()` will do so
+ * with clones of any object instances that are passed.
  *
- * Both methods throw a Dkd\Populate\Exception
+ * All methods throw a Dkd\Populate\Exception
  * if any property passed in the property name map either
  * does not exist or has no getter/setter.
  */
@@ -46,9 +50,12 @@ trait PopulateTrait
      * Populates this instance, using standard references
      * (as opposed to cloning) when objects are encountered.
      *
-     * @param  PopulateInterface|array $source
-     * @param  array                   $propertyNameMap
-     * @param  boolean                 $onlyMappedProperties
+     * @param  PopulateInterface|array $source A key=>value array or another
+     *         PopulateInterface instance to use as data
+     * @param  array                   $propertyNameMap Optional array of property
+     *         names supporting mapping (see README)
+     * @param  boolean                 $onlyMappedProperties If <code>true</code>
+     *         will only populate properties contained in map
      * @throws Exception               Will pass through any Exception during populating
      */
     public function populate($source, array $propertyNameMap = array(), $onlyMappedProperties = false)
@@ -60,9 +67,12 @@ trait PopulateTrait
      * Populates this instance, cloning any object values
      * that may be encountered.
      *
-     * @param  PopulateInterface|array $source
-     * @param  array                   $propertyNameMap
-     * @param  boolean                 $onlyMappedProperties
+     * @param  PopulateInterface|array $source A key=>value array or another
+     *         PopulateInterface instance to use as data
+     * @param  array                   $propertyNameMap Optional array of property
+     *         names supporting mapping (see README)
+     * @param  boolean                 $onlyMappedProperties If <code>true</code>
+     *         will only populate properties contained in map
      * @throws Exception               Will pass through any Exception during populating
      */
     public function populateWithClones($source, array $propertyNameMap = array(), $onlyMappedProperties = false)
@@ -79,18 +89,23 @@ trait PopulateTrait
      *
      * To selectively populate properties without mapping
      * their names, use a mirror array as property name
-     * map and TRUE as third parameter, e.g.
+     * map and <code>true</code> as third parameter, e.g.
      *
-     *     $object->populate($source, array('test' => 'test'), TRUE);
+     *     $object->populate($source, array('test' => 'test'), true);
      *
      * This causes $object to be populated using $only the
      * "test" property from $source.
      *
-     * @param  PopulateInterface|array $source
-     * @param  array                   $propertyNameMap
-     * @param  boolean                 $onlyMappedProperties
-     * @param  boolean                 $cloneObjects
-     * @throws Exception
+     * @param  PopulateInterface|array $source A key=>value array or another
+     *         PopulateInterface instance to use as data
+     * @param  array                   $propertyNameMap Optional array of property
+     *         names supporting mapping (see README)
+     * @param  boolean                 $onlyMappedProperties If <code>true</code>
+     *         will only populate properties contained in map
+     * @param  boolean                 $cloneObjects If <code>true</code> will use
+     *         <code>clone</coode> on any object instances
+     * @throws Exception               Thrown on invalid or unsupported input data
+     *         or problems while setting properties
      */
     private function populateInternal($source, array $propertyNameMap, $onlyMappedProperties, $cloneObjects)
     {
@@ -144,23 +159,37 @@ trait PopulateTrait
      *
      * To selectively populate properties without mapping
      * their names, use a mirror array as property name
-     * map and TRUE as third parameter, e.g.
+     * map and <code>true</code> as third parameter, e.g.
      *
-     *     $object->export(array('test' => 'test'), TRUE);
+     *     $object->exportGettableProperties(array('test' => 'test'), true);
      *
      * This causes $object to be populated using $only the
      * "test" property from $source.
      *
-     * @param  array   $propertyNameMap
-     * @param  boolean $onlyMappedProperties
-     * @throws Exception
+     * @param  array   $propertyNameMap Optional array of property names
+     *         supporting mapping (see README)
+     * @param  boolean $onlyMappedProperties If <code>true</code> will only populate
+     *         properties contained in map
+     * @throws Exception If a property name map is passed and only mapped properties
+     *         flag is <code>true</code>, any Exceptions will be passed through because
+     *         this is considered an explicit attempt at access. However, if _all_
+     *         properties are requested (which happens when the only mapped properties
+     *         flag is <code>false</code>), Exceptions are suppressed and erroneous
+     *         properties silently ignored and removed from the output array because
+     *         in this case, it is likely that the list of property names came from a
+     *         source like <code>get_class_vars</code> which does not care about the
+     *         presence of getter/setter methods so we must tolerate and skip failures.
      */
     public function exportGettableProperties(array $propertyNameMap = array(), $onlyMappedProperties = false)
     {
         $export = array();
         $propertyNameMap = $this->convertPropertyMap($propertyNameMap);
 
-        // loop values, skipping mapped properties, use Trait's internal setter to set value
+        // Loop values, skipping mapped properties, use Trait's internal getter to get value.
+        // We are suppressing Exceptions in this step in order to not disclose the reason why
+        // a particular property could not be read. Possible causes are visibility, typos
+        // in getter method name, non-standard getter method naming, or third-party Exceptions
+        // being thrown from a getter.
         if (!$onlyMappedProperties) {
             $sourcePropertyNames = array_keys(get_class_vars(__CLASS__));
             foreach ($sourcePropertyNames as $propertyName) {
@@ -170,6 +199,7 @@ trait PopulateTrait
                 try {
                     $export[$propertyName] = $this->getPopulatedProperty($propertyName);
                 } catch (Exception $error) {
+                    // @TODO: consider logging failures w/ reason
                     continue;
                 }
             }
@@ -199,8 +229,8 @@ trait PopulateTrait
      *
      * @param  string $propertyName The name of the property on this object
      * @param  string $method       Either `get` or `set`
-     * @return string|FALSE Method name ready for property value getting or
-     *         setting as determined by $method, FALSE if no function was found.
+     * @return string|boolean Method name ready for property value getting or
+     *         setting as determined by $method, <code>false</code> if no function was found.
      */
     private function determinePropertyAccessFunctionName($propertyName, $method)
     {
@@ -218,10 +248,11 @@ trait PopulateTrait
      * throws a Dkd\Populate\Exception if no method could be found
      * and $ignoreFailures was false.
      *
-     * @param  string  $propertyName
-     * @param  mixed   $value
-     * @param  boolean $cloneObjects
-     * @throws AccessException
+     * @param  string  $propertyName Name of the property to set on this instance
+     * @param  mixed   $value New value of the property
+     * @param  boolean $cloneObjects If <code>true</code> and <code>$value</code>
+     *         is an object instance, <code>clone</code> will be used on the value
+     * @throws AccessException Thrown if a viable setter method cannot be determined
      */
     private function setPopulatedProperty($propertyName, $value, $cloneObjects)
     {
@@ -239,9 +270,9 @@ trait PopulateTrait
      * Gets a single property via the resolved getter method,
      * throws a Dkd\Populate\Exception if no method could be found.
      *
-     * @param  string $propertyName
-     * @return array|NULL
-     * @throws AccessException
+     * @param  string $propertyName Name of the property to get from this instance
+     * @return mixed The current value of the property
+     * @throws AccessException Thrown if a viable getter method cannot be determined
      */
     private function getPopulatedProperty($propertyName)
     {
@@ -262,8 +293,9 @@ trait PopulateTrait
      *
      * The output array can then be consumed by populate/export methods.
      *
-     * @param array $propertyNameMap
-     * @return array
+     * @param  array $propertyNameMap Optional array of property names
+     *         supporting mapping (see README)
+     * @return array The property map with expected name=>value format
      */
     private function convertPropertyMap(array $propertyNameMap)
     {

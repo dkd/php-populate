@@ -20,7 +20,7 @@ namespace Dkd\Populate;
  * To map one property to another property, pass a property
  * name map as second parameter:
  *
- *     $object->populate($source, array('orinal' => 'mappedName'));
+ *     $object->populate($source, array('sourceName' => 'mappedName'));
  *
  * This populates the <code>mappedName</code> property on
  * <code>$object</code> with the value of the <code>original</code>
@@ -34,7 +34,7 @@ namespace Dkd\Populate;
  *     $object->populate($source, array('test'), true);
  *
  * This causes <code>$object</code> to be populated using only
- * the <code>tes</code> property value from <code>$source</code>.
+ * the <code>test</code> property value from <code>$source</code>.
  *
  * By default, any property value that contains an object
  * instance will be populated with a _reference_ to the instance.
@@ -70,18 +70,27 @@ interface PopulateInterface
      * the property map, only populating those properties
      * whose names were passed in the property map.
      *
-     * @param  PopulateTrait|array $source
-     * @param  array               $propertyNameMap
-     * @param  boolean             $onlyMappedProperties
-     * @throws Exception
+     * @param  PopulateInterface|array $source A key=>value array or another
+     *         PopulateInterface instance to use as data
+     * @param  array                   $propertyNameMap Optional array of property
+     *         names supporting mapping (see README)
+     * @param  boolean                 $onlyMappedProperties If <code>true</code>
+     *         will only populate properties contained in map
+     * @throws Exception               Will pass through any Exception during populating
      */
     public function populate($source, array $propertyNameMap = array(), $onlyMappedProperties = false);
 
     /**
-     * @param  PopulateTrait|array $source
-     * @param  array               $propertyNameMap
-     * @param  boolean             $onlyMappedProperties
-     * @throws Exception
+     * Populates this instance, cloning any object values
+     * that may be encountered.
+     *
+     * @param  PopulateInterface|array $source A key=>value array or another
+     *         PopulateInterface instance to use as data
+     * @param  array                   $propertyNameMap Optional array of property
+     *         names supporting mapping (see README)
+     * @param  boolean                 $onlyMappedProperties If <code>true</code>
+     *         will only populate properties contained in map
+     * @throws Exception               Will pass through any Exception during populating
      */
     public function populateWithClones($source, array $propertyNameMap = array(), $onlyMappedProperties = false);
 
@@ -94,16 +103,26 @@ interface PopulateInterface
      *
      * To selectively populate properties without mapping
      * their names, use a mirror array as property name
-     * map and TRUE as third parameter, e.g.
+     * map and <code>true</code> as third parameter, e.g.
      *
-     *     $object->export(array('test' => 'test'), true);
+     *     $object->exportGettableProperties(array('test' => 'test'), true);
      *
      * This causes $object to be populated using $only the
      * "test" property from $source.
      *
-     * @param  array   $propertyNameMap
-     * @param  boolean $onlyMappedProperties
-     * @throws Exception
+     * @param  array   $propertyNameMap Optional array of property names
+     *         supporting mapping (see README)
+     * @param  boolean $onlyMappedProperties If <code>true</code> will only populate
+     *         properties contained in map
+     * @throws Exception If a property name map is passed and only mapped properties
+     *         flag is <code>true</code>, any Exceptions will be passed through because
+     *         this is considered an explicit attempt at access. However, if _all_
+     *         properties are requested (which happens when the only mapped properties
+     *         flag is <code>false</code>), Exceptions are suppressed and erroneous
+     *         properties silently ignored and removed from the output array because
+     *         in this case, it is likely that the list of property names came from a
+     *         source like <code>get_class_vars</code> which does not care about the
+     *         presence of getter/setter methods so we must tolerate and skip failures.
      */
     public function exportGettableProperties(array $propertyNameMap = array(), $onlyMappedProperties = false);
 }
