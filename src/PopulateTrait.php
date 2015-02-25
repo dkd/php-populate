@@ -41,7 +41,7 @@ trait PopulateTrait
      *
      * @var array
      */
-    private $populatableAccessorMethodNames = array(
+    private $populatableAccessorMethodNamePrefixes = array(
         'get' => array('get', 'is', 'getIs'),
         'set' => array('set', 'setIs')
     );
@@ -226,6 +226,7 @@ trait PopulateTrait
      * - setIsEmployed()
      * - getIsEmployed()
      * - isEmployed()
+     * - employed()
      *
      * @param  string $propertyName The name of the property on this object
      * @param  string $method       Either `get` or `set`
@@ -235,12 +236,28 @@ trait PopulateTrait
     private function determinePropertyAccessFunctionName($propertyName, $method)
     {
         $methodSuffix = ucfirst($propertyName);
-        foreach ($this->populatableAccessorMethodNames[$method] as $methodPrefix) {
+        $accessMethodNames = array();
+        foreach ($this->populatableAccessorMethodNamePrefixes[$method] as $methodPrefix) {
             if (method_exists($this, $methodPrefix . $methodSuffix)) {
-                return $methodPrefix . $methodSuffix;
+                $accessMethodNames[] = $methodPrefix . $methodSuffix;
             }
         }
-        return false;
+
+        // special case for getter allowing the raw property name as getter function name;
+        // see README.md about property name processing.
+        if ($method === 'get' && method_exists($this, $propertyName)) {
+            $accessMethodNames[] = $propertyName;
+        }
+
+        if (count($accessMethodNames) > 1) {
+            throw new AccessException(
+                'No unique access method can be determined for property ' . $propertyName . '. Found multiple' .
+                ' access methods (' . implode(', ', $accessMethodNames) . ') but there must be only one!',
+                1424776261
+            );
+        }
+
+        return (empty($accessMethodNames)) ? false : $accessMethodNames[0];
     }
 
     /**

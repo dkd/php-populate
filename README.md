@@ -246,6 +246,7 @@ requires the following to be fulfilled:
   1. `getName`
   2. `isName`
   3. `getIsName`
+  4. `name`
 4. Valid setter names are (if property is `name`):
   1. `setName`
   2. `setIsName`
@@ -253,6 +254,15 @@ requires the following to be fulfilled:
 The additional `is`-style method names are only attemted if the
 standard methods do not exist - this is done in order to accommodate
 the standard PHP pattern of naming boolean getters/setters using `is`.
+The getter can also be just the property name. This could be useful if
+the property is named like `$isFinished`.
+
+**Special requirements**
+
+There must be only one getter for each property. If multiple getters
+are found for a property, based on the rules above, an exception is
+thrown. This is required to ensure that the getter for a property always
+acts the same way.
 
 Handling an error from PopulateTrait
 ------------------------------------
@@ -266,6 +276,7 @@ And using a more specific `Dkd\Populate\AccessException` for:
 
 * `1422021211` when attempting to populate a setter-less property
 * `1422021212` when attempting to export a getter-less property
+* `1424776261` when multiple property accessor methods are found
 
 The `Exception` type is caught as usual:
 

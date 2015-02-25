@@ -12,6 +12,7 @@ namespace Dkd\Populate\Tests\Unit;
 
 use Dkd\Populate\Tests\Fixtures\ArrayAccessWithoutIterator;
 use Dkd\Populate\Tests\Fixtures\ChildPopulateDummy;
+use Dkd\Populate\Tests\Fixtures\MultipleAccessMethodsPopulateDummy;
 use Dkd\Populate\Tests\Fixtures\PopulateDummy;
 
 /**
@@ -121,10 +122,10 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
                 array('property1' => 'test', 'boolean' => true)
             ),
             array(
-                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false),
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true),
                 array(),
                 false,
-                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false)
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true)
             ),
 
             // works with object-value getters/setters
@@ -167,6 +168,7 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
             'property2' => null,
             'childProperty1' => null,
             'boolean' => null,
+            'isBoolean2' => null,
             'object' => null,
             'withoutSetter' => null
         );
@@ -238,5 +240,15 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
             array($dateTime, array('property1'), false),
             array($dateTime, array('property1'), true),
         );
+    }
+
+    /**
+     * @return void
+     */
+    public function testExportThrowsExceptionIfMultipleGettersFound()
+    {
+        $this->setExpectedException('\\Dkd\\Populate\\AccessException', '', 1424776261);
+        $subject = new MultipleAccessMethodsPopulateDummy();
+        $this->assertEmpty($subject->exportGettableProperties(array('boolean')));
     }
 }

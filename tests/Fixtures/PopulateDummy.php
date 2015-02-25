@@ -36,6 +36,11 @@ class PopulateDummy implements PopulateInterface
     protected $boolean;
 
     /**
+     * @var boolean
+     */
+    protected $isBoolean2;
+
+    /**
      * @var PopulateDummy
      */
     protected $object;
@@ -97,6 +102,23 @@ class PopulateDummy implements PopulateInterface
     public function setBoolean($boolean)
     {
         $this->boolean = $boolean;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isBoolean2()
+    {
+        return $this->isBoolean2;
+    }
+
+    /**
+     * @param boolean $isBoolean2
+     * @return void
+     */
+    public function setIsBoolean2($isBoolean2)
+    {
+        $this->isBoolean2 = $isBoolean2;
     }
 
     /**
