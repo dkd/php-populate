@@ -11,6 +11,7 @@ namespace Dkd\Populate\Tests\Unit;
  */
 
 use Dkd\Populate\Tests\Fixtures\ArrayAccessWithoutIterator;
+use Dkd\Populate\Tests\Fixtures\ChildPopulateDummy;
 use Dkd\Populate\Tests\Fixtures\PopulateDummy;
 
 /**
@@ -86,13 +87,17 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider getTestValues
-     * @param mixed   $subjectData
+     * @param mixed   $sourceData
      * @param array   $propertyNameMap
      * @param boolean $onlyMappedProperties
      * @param array   $expectedResult
      */
-    public function testExport($sourceData, array $propertyNameMap, $onlyMappedProperties, array $expectedResult)
-    {
+    public function testExportGettableProperties(
+        $sourceData,
+        array $propertyNameMap,
+        $onlyMappedProperties,
+        array $expectedResult
+    ) {
         $subject = new PopulateDummy();
         $subject->populate($sourceData);
         $export = $subject->exportGettableProperties($propertyNameMap, $onlyMappedProperties);
@@ -154,6 +159,20 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
         );
     }
 
+    public function testExportGettablePropertiesForInheritedClass()
+    {
+        $subject = new ChildPopulateDummy();
+        $expectedResult = array(
+            'property1' => null,
+            'property2' => null,
+            'childProperty1' => null,
+            'boolean' => null,
+            'object' => null,
+            'withoutSetter' => null
+        );
+        $this->assertEquals($expectedResult, $subject->exportGettableProperties());
+    }
+
     /**
      * @dataProvider getErrorTestValues
      * @param mixed   $sourceData
@@ -186,7 +205,6 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
      */
     public function getErrorTestValues()
     {
-
         $dateTime = new \DateTime();
         return array(
 

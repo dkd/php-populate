@@ -191,7 +191,7 @@ trait PopulateTrait
         // in getter method name, non-standard getter method naming, or third-party Exceptions
         // being thrown from a getter.
         if (!$onlyMappedProperties) {
-            $sourcePropertyNames = array_keys(get_class_vars(__CLASS__));
+            $sourcePropertyNames = array_keys(get_class_vars(get_called_class()));
             foreach ($sourcePropertyNames as $propertyName) {
                 if (isset($propertyNameMap[$propertyName]) || $propertyName === 'populatableAccessorMethodNames') {
                     continue;
