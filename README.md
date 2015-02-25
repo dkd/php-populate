@@ -1,6 +1,14 @@
 PHP Trait: Populate
 ===================
 
+[![Build Status](https://api.travis-ci.org/dkd/php-populate.svg)](https://travis-ci.org/dkd/php-populate)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/dkd/php-populate/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/dkd/php-populate/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/dkd/php-populate/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/dkd/php-populate/?branch=master)
+[![Latest Stable Version](https://poser.pugx.org/dkd/php-populate/v/stable.svg)](https://packagist.org/packages/dkd/php-populate)
+[![Total Downloads](https://poser.pugx.org/dkd/php-populate/downloads.svg)](https://packagist.org/packages/dkd/php-populate)
+[![Latest Unstable Version](https://poser.pugx.org/dkd/php-populate/v/unstable.svg)](https://packagist.org/packages/dkd/php-populate)
+[![License](https://poser.pugx.org/dkd/php-populate/license.svg)](https://packagist.org/packages/dkd/php-populate)
+
 A simple Trait for PHP classes enabling properties to be populated
 and exported using the object's getters and setters but through a
 single method.
