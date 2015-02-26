@@ -2,7 +2,6 @@
     "name": "dkd/php-populate",
     "description": "Trait for PHP classes, allowing properties to be populated from sources like JSON, via getters but using a single method",
     "license": "MIT",
-    "version": "1.3.0",
     "keywords": ["php", "trait", "json"],
     "authors": [
         {
