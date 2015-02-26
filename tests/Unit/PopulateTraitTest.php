@@ -86,6 +86,36 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(array('property1' => 'test'), $subject->exportGettableProperties(array('property1'), true));
     }
 
+    /*
+     * @return void
+     */
+    public function testPopulateWithObjectThatImplementsPopulateInterface()
+    {
+        $source = new PopulateDummy();
+        $source->setProperty1('foo');
+        $source->setProperty2('bar');
+
+        $target = new PopulateDummy();
+        $target->populate($source);
+        $this->assertEquals($source, $target);
+    }
+
+    /*
+     * @return void
+     */
+    public function testPopulateIgnoresMappedPropertyIfItDoesNotExistInSourceArray()
+    {
+        $source = array('property1' => 'foo');
+
+        $target = new PopulateDummy();
+        $target->populate($source, array('property1', 'nonExistingProperty'), true);
+
+        $expected = new PopulateDummy();
+        $expected->setProperty1('foo');
+
+        $this->assertEquals($expected, $target);
+    }
+
     /**
      * @dataProvider getTestValues
      * @param mixed   $sourceData
