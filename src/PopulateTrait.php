@@ -316,9 +316,24 @@ trait PopulateTrait
      */
     private function convertPropertyMap(array $propertyNameMap)
     {
-        if (isset($propertyNameMap[0])) {
+        if (!$this->isAssociativeArray($propertyNameMap)) {
             $propertyNameMap = array_combine($propertyNameMap, $propertyNameMap);
         }
         return $propertyNameMap;
+    }
+
+    /**
+     * Checks if an array is an associative array or an numerical indexed array
+     *
+     * @param array $array The array to check
+     * @return boolean <code>true</code> if the array is associative and <code>false</false> if not
+     */
+    private function isAssociativeArray(array $array)
+    {
+        ksort($array);
+        if (array_values($array) === $array) {
+            return false;
+        }
+        return true;
     }
 }

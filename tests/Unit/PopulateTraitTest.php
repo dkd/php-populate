@@ -145,21 +145,40 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
         return array(
 
             // works with simple data sets without mapping
-            array(
+            'simple data set without mapping' => array(
                 array('property1' => 'test', 'boolean' => true),
                 array(),
                 false,
                 array('property1' => 'test', 'boolean' => true)
             ),
-            array(
+            'with boolean property and boolean property key prefixed with "is" and without mapping' => array(
                 array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true),
                 array(),
                 false,
                 array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true)
             ),
+            'mapping with non associative mapping array' => array(
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true),
+                array('property1', 'property2', 'boolean', 'isBoolean2'),
+                false,
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true)
+            ),
+            'mapping with non associative array but keys randomly ordered and of type string and integer' => array(
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true),
+                array('1' => 'property1', 0 => 'property2', 2 => 'boolean', 3 => 'isBoolean2'),
+                false,
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true)
+            ),
+            'mapping with non associative array but keys randomly ordered and of type string and integer and only mapped property option enabled' => array(
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true),
+                array('1' => 'property1', 0 => 'property2', 2 => 'boolean', 3 => 'isBoolean2'),
+                true,
+                array('property1' => 'test', 'property2' => 'test2', 'boolean' => false, 'isBoolean2' => true)
+            ),
+
 
             // works with object-value getters/setters
-            array(
+            'property with object as value' => array(
                 array('object' => $object),
                 array(),
                 false,
@@ -167,7 +186,7 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
             ),
 
             // works with mapping
-            array(
+            'mapping array that maps one property to another property name but both keys exist' => array(
                 array('property1' => 'test', 'boolean' => true),
                 array('property1' => 'property2'),
                 false,
@@ -175,13 +194,13 @@ class PopulateTraitTest extends \PHPUnit_Framework_TestCase
             ),
 
             // respects "only mapped properties" flag
-            array(
+            'sets only mapped properties if option is set - mapping array is associative' => array(
                 array('property1' => 'test', 'property2' => 'test2'),
                 array('property1' => 'property1'),
                 true,
                 array('property1' => 'test')
             ),
-            array(
+            'sets only mapped properties if option is set - mapping array is not associative' => array(
                 array('property1' => 'test', 'property2' => 'test2'),
                 array('property1'),
                 true,
