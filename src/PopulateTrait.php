@@ -105,13 +105,13 @@ trait PopulateTrait
      * @param  boolean                 $cloneObjects If <code>true</code> will use
      *         <code>clone</coode> on any object instances
      * @throws Exception               Thrown on invalid or unsupported input data
-     *         or problems while setting properties
+     * @throws AccessException         Thrown on problems while setting properties
      */
     private function populateInternal($source, array $propertyNameMap, $onlyMappedProperties, $cloneObjects)
     {
         // decide where values come from or throw Exception if not retrievable
         if ($source instanceof PopulateInterface) {
-            $source = $source->exportGettableProperties($propertyNameMap, $onlyMappedProperties);
+            $data = $source->exportGettableProperties($propertyNameMap, $onlyMappedProperties);
             // ignore setter presence failures when values come from another object
         } elseif (!$onlyMappedProperties && $source instanceof \ArrayAccess && !$source instanceof \Iterator) {
             // fail if passing ArrayAccess without Iterator without explicit property list:
@@ -125,15 +125,30 @@ trait PopulateTrait
                 'Invalid source type: ' . gettype($source),
                 1422045180
             );
+        } else {
+            $data = $source;
         }
 
         $propertyNameMap = $this->convertPropertyMap($propertyNameMap);
 
         // loop values, skipping mapped properties, use Trait's internal setter to set value
         if (!$onlyMappedProperties) {
-            foreach ($source as $propertyName => $propertyValue) {
+            foreach ($data as $propertyName => $propertyValue) {
                 if (!isset($propertyNameMap[$propertyName])) {
-                    $this->setPopulatedProperty($propertyName, $propertyValue, $cloneObjects);
+                    try {
+                        // Note: $propertyValue is re-assigned directly from $data, again. We do
+                        // this to make sure that if an Iterator+ArrayAccess instance is given,
+                        // then the value returned from the ArrayAccess will replace the value
+                        // returned from the Iterator portion. Re-assigning the variable this
+                        // way looks redundant but serves a purpose.
+                        $propertyValue = $data[$propertyName];
+                        $this->setPopulatedProperty($propertyName, $propertyValue, $cloneObjects);
+                    } catch (AccessException $error) {
+                        // source was another Populate; $data may contain gettable but unsettable properties.
+                        if (!$source instanceof PopulateInterface) {
+                            throw $error;
+                        }
+                    }
                 }
             }
         }
@@ -141,8 +156,8 @@ trait PopulateTrait
         // loop the mapped properties last to ensure mapped names override default names
         foreach ($propertyNameMap as $sourcePropertyName => $destinationPropertyName) {
             // only populate properties which were passed in source values
-            if (isset($source[$sourcePropertyName])) {
-                $propertyValue = $source[$sourcePropertyName];
+            if (isset($data[$sourcePropertyName])) {
+                $propertyValue = $data[$sourcePropertyName];
                 $this->setPopulatedProperty($destinationPropertyName, $propertyValue, $cloneObjects);
             }
         }
@@ -276,11 +291,11 @@ trait PopulateTrait
      */
     private function setPopulatedProperty($propertyName, $value, $cloneObjects)
     {
-        if ($value !== null) {
+        $method = $this->determinePropertyAccessFunctionName($propertyName, 'set');
+        if ($value !== null || $this->determineMethodParameterAllowsNull($method)) {
             if ($cloneObjects && is_object($value)) {
                 $value = clone $value;
             }
-            $method = $this->determinePropertyAccessFunctionName($propertyName, 'set');
             $this->$method($value);
         }
     }
@@ -323,5 +338,19 @@ trait PopulateTrait
             $rebuilt[$origin] = $destination;
         }
         return $rebuilt;
+    }
+
+    /**
+     * Returns <code>true</code> if the method designated in $methodName
+     * supports <code>null</code> as value of the first/only parameter.
+     * Used when checking if a setter method should allow <code>null</code>.
+     *
+     * @param string $methodName
+     * @return boolean
+     */
+    private function determineMethodParameterAllowsNull($methodName)
+    {
+        $parameter = new \ReflectionParameter(array($this, $methodName), 0);
+        return $parameter->allowsNull();
     }
 }

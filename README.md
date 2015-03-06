@@ -15,7 +15,7 @@ single method.
 
 `PopulateTrait` is great because it:
 
-* Is simple and fast - no use of Reflection, code generation and such
+* Is simple and fast - no use of code generation and such
 * Uses getters and setters - always respects your public API
 * Does not add overloaded methods - avoids magic behavior
 * Is bi-directional - populates *and* exports properties
