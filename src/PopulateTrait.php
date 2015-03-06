@@ -132,21 +132,19 @@ trait PopulateTrait
         // loop values, skipping mapped properties, use Trait's internal setter to set value
         if (!$onlyMappedProperties) {
             foreach ($source as $propertyName => $propertyValue) {
-                if (isset($propertyNameMap[$propertyName]) || $propertyValue === null) {
-                    continue;
+                if (!isset($propertyNameMap[$propertyName])) {
+                    $this->setPopulatedProperty($propertyName, $propertyValue, $cloneObjects);
                 }
-                $this->setPopulatedProperty($propertyName, $propertyValue, $cloneObjects);
             }
         }
 
         // loop the mapped properties last to ensure mapped names override default names
         foreach ($propertyNameMap as $sourcePropertyName => $destinationPropertyName) {
-            if (!isset($source[$sourcePropertyName]) || $source[$sourcePropertyName] === null) {
-                // do not populate properties which were not passed in source values
-                continue;
+            // only populate properties which were passed in source values
+            if (isset($source[$sourcePropertyName])) {
+                $propertyValue = $source[$sourcePropertyName];
+                $this->setPopulatedProperty($destinationPropertyName, $propertyValue, $cloneObjects);
             }
-            $propertyValue = $source[$sourcePropertyName];
-            $this->setPopulatedProperty($destinationPropertyName, $propertyValue, $cloneObjects);
         }
     }
 
@@ -249,10 +247,15 @@ trait PopulateTrait
             $accessMethodNames[] = $propertyName;
         }
 
-        if (count($accessMethodNames) > 1) {
+        if (empty($accessMethodNames)) {
             throw new AccessException(
-                'No unique access method can be determined for property ' . $propertyName . '. Found multiple' .
-                ' access methods (' . implode(', ', $accessMethodNames) . ') but there must be only one!',
+                'No "' . $method . '" method(s) can be determined for property ' . $propertyName,
+                1422021212
+            );
+        } elseif (count($accessMethodNames) > 1) {
+            throw new AccessException(
+                'Found multiple "' . $method . '" access methods for property ' . $propertyName .
+                ' (' . implode(', ', $accessMethodNames) . ') but there must be only one!',
                 1424776261
             );
         }
@@ -273,14 +276,13 @@ trait PopulateTrait
      */
     private function setPopulatedProperty($propertyName, $value, $cloneObjects)
     {
-        if ($cloneObjects && is_object($value)) {
-            $value = clone $value;
+        if ($value !== null) {
+            if ($cloneObjects && is_object($value)) {
+                $value = clone $value;
+            }
+            $method = $this->determinePropertyAccessFunctionName($propertyName, 'set');
+            $this->$method($value);
         }
-        $method = $this->determinePropertyAccessFunctionName($propertyName, 'set');
-        if (!$method) {
-            throw new AccessException('No setter method can be determined for property ' . $propertyName, 1422021211);
-        }
-        $this->$method($value);
     }
 
     /**
@@ -294,19 +296,16 @@ trait PopulateTrait
     private function getPopulatedProperty($propertyName)
     {
         $method = $this->determinePropertyAccessFunctionName($propertyName, 'get');
-        if (!$method) {
-            throw new AccessException('No getter method can be determined for property ' . $propertyName, 1422021212);
-        }
         return $this->$method();
     }
 
     /**
-     * Converts the input array if necessary: if the input array is
-     * numerically indexed starting with zero, the array was created
-     * without keys, e.g. array('property1', 'property2') and the
-     * array must be re-created as a properly indexed array which
-     * uses property names as both keys and values in the array, e.g.
-     * array('property1' => 'property1', 'property2' => 'property2').
+     * Converts the input array if necessary: check each property defined
+     * in the array to ensure an output of an associative array regardless
+     * of the input array structure. The array can be mixed associative
+     * and numerically indexed - the output will always be associative;
+     * any entries which have numeric indexes will be returned with the
+     * property name as both index and value for that entry.
      *
      * The output array can then be consumed by populate/export methods.
      *
@@ -316,24 +315,13 @@ trait PopulateTrait
      */
     private function convertPropertyMap(array $propertyNameMap)
     {
-        if (!$this->isAssociativeArray($propertyNameMap)) {
-            $propertyNameMap = array_combine($propertyNameMap, $propertyNameMap);
+        $rebuilt = array();
+        foreach ($propertyNameMap as $origin => $destination) {
+            if (is_integer($origin)) {
+                $origin = $destination;
+            }
+            $rebuilt[$origin] = $destination;
         }
-        return $propertyNameMap;
-    }
-
-    /**
-     * Checks if an array is an associative array or an numerical indexed array
-     *
-     * @param array $array The array to check
-     * @return boolean <code>true</code> if the array is associative and <code>false</false> if not
-     */
-    private function isAssociativeArray(array $array)
-    {
-        ksort($array);
-        if (array_values($array) === $array) {
-            return false;
-        }
-        return true;
+        return $rebuilt;
     }
 }
