@@ -296,7 +296,16 @@ trait PopulateTrait
             if ($cloneObjects && is_object($value)) {
                 $value = clone $value;
             }
+            set_error_handler(function($errorNumber, $errorString, $errorFile, $errorLine, array $errorContext) {
+                // error was suppressed with the @-operator
+                if (0 === error_reporting()) {
+                    return false;
+                }
+
+                throw new \ErrorException($errorString, 0, $errorNumber, $errorFile, $errorLine);
+            });
             $this->$method($value);
+            restore_error_handler();
         }
     }
 
